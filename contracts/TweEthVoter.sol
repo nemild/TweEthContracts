@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
@@ -27,7 +27,7 @@ contract TweEthVoter { // CapWords
 
     bool yesWon;
     bool quorumPassed;
-  };
+  }
 
   mapping(bytes32 => Proposal) private uuidToProposals;
 
@@ -38,20 +38,25 @@ contract TweEthVoter { // CapWords
     address _tokenAddress,
     uint256 _quorumTokensPercentage,
     uint256 _proposerAmount) public {
-    tokenAddress = _tokenAddress;
+    tokenAddress = ERC20Mintable(_tokenAddress);
     quorumTokensPercentage = _quorumTokensPercentage;
     proposerAmount = _proposerAmount;
   }
 
   function propose(bytes32 id) external returns (bool success) {
     // Store
-    if(!uuidToProposals[id]) {
+    if(uuidToProposals[id].startTime == 0) { // test if ID does not exist
       tokenAddress.transferFrom(msg.sender, this, proposerAmount);
 
       uuidToProposals[id] = Proposal({
         proposer: msg.sender, // Added for transparency, not internal usage
         startTime: now,
-        open: true
+        open: true,
+        noTotal: 0,
+        yesTotal: 0,
+        bonus: 0,
+        yesWon: false,
+        quorumPassed: false
       });
       return true;
     }
@@ -59,15 +64,15 @@ contract TweEthVoter { // CapWords
     return false;
   }
 
-  function vote(bytes32 id, uint256 amount, bool vote) external returns (bool success) {
-    if(uuidToProposals[id] && uuidToProposal[id].open){
+  function vote(bytes32 id, uint256 amount, bool voteYes) external returns (bool success) {
+    if(uuidToProposals[id].startTime != 0 && uuidToProposals[id].open){
       tokenAddress.transferFrom(msg.sender, this, amount);
 
-      if(vote){
+      if(voteYes){
         uuidToProposals[id].yesVotes[msg.sender] = uuidToProposals[id].yesVotes[msg.sender] + amount;
         uuidToProposals[id].yesTotal = uuidToProposals[id].yesTotal + amount; 
       } else {
-        uuuidToProposals[id].noVotes[msg.sender] = uuuidToProposals[id].noVotes[msg.sender] + amount;
+        uuidToProposals[id].noVotes[msg.sender] = uuidToProposals[id].noVotes[msg.sender] + amount;
         uuidToProposals[id].noTotal = uuidToProposals[id].noTotal + amount; 
       }
 
@@ -79,15 +84,15 @@ contract TweEthVoter { // CapWords
 
   function close(bytes32 id) external returns (bool success) {
     if(
-        uuidToProposals[id] && 
-        uuidToProposal[id].open && 
-        uuidToProposal[id].startTime + votingLength > now
+        uuidToProposals[id].startTime != 0 && 
+        uuidToProposals[id].open && 
+        uuidToProposals[id].startTime + votingLength > now
       ){
         // 1. Close
-        uuidToProposal[id].open = false;
+        uuidToProposals[id].open = false;
 
         // 2. Determine winner
-        uint256 minTokensRequired = quorumTokensPercentage.mul(tokenAddress.totalSupply).div(100);
+        uint256 minTokensRequired = quorumTokensPercentage.mul(tokenAddress.totalSupply()).div(100);
 
         if((uuidToProposals[id].noTotal + uuidToProposals[id].yesTotal) > minTokensRequired) { // quorum passed
           uuidToProposals[id].quorumPassed = true;
@@ -105,28 +110,33 @@ contract TweEthVoter { // CapWords
     return false;
   }
 
-  function claim(bytes32[] ids) external (bool sent) {
-    uint256 tokenSum; //TODO memory?? 
+  function claim(bytes32[] ids) external returns (bool sent) {
+    uint256 tokenSum; //TODO memory??
 
-    for (i = 0; i < ids.length; i++){
-      if(!uuidToProposals[ids[i].quorumPassed) {
-        tokenSum = tokenSum + 
-          uuidToProposals[ids[i]].yesVotes[msg.sender] + 
-          uuidToProposals[ids[i]].noVotes[msg.sender];
+    require(ids.length < 256);
+
+    for (uint8 i = 0; i < ids.length; i++){
+      if(uuidToProposals[ids[i]].startTime != 0) {
+
+        if(!uuidToProposals[ids[i]].quorumPassed) {
+          tokenSum = tokenSum + 
+            uuidToProposals[ids[i]].yesVotes[msg.sender] + 
+            uuidToProposals[ids[i]].noVotes[msg.sender];
+
+            uuidToProposals[ids[i]].yesVotes[msg.sender] = 0;
+            uuidToProposals[ids[i]].noVotes[msg.sender] = 0;
+        } else if(uuidToProposals[ids[i]].yesWon) {
+          tokenSum = tokenSum + 
+                    uuidToProposals[ids[i]].yesVotes[msg.sender] + 
+                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].yesVotes[msg.sender]).div(1000);
 
           uuidToProposals[ids[i]].yesVotes[msg.sender] = 0;
+        } else {
+          tokenSum = tokenSum + 
+                    uuidToProposals[ids[i]].noVotes[msg.sender] + 
+                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].noVotes[msg.sender]).div(1000);
           uuidToProposals[ids[i]].noVotes[msg.sender] = 0;
-      } else if(uuidToProposals[ids[i].yesWon) {
-        tokenSum = tokenSum + 
-                   uuidToProposals[ids[i]].yesVotes[msg.sender] + 
-                   uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].yesVotes[msg.sender]).div(1000);
-
-        uuidToProposals[ids[i]].yesVotes[msg.sender] = 0;
-      } else {
-        tokenSum = tokenSum + 
-                   uuidToProposals[ids[i]].noVotes[msg.sender] + 
-                   uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].noVotes[msg.sender]).div(1000);
-        uuidToProposals[ids[i]].noVotes[msg.sender] = 0;
+        }
       }
     }
 
@@ -136,4 +146,5 @@ contract TweEthVoter { // CapWords
     }
 
     return false;
+  }
 }
