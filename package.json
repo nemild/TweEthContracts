@@ -23,7 +23,9 @@
   ],
   "license": "ISC",
   "dependencies": {
-    "openzeppelin-solidity": "git+ssh://git@github.com/OpenZeppelin/openzeppelin-solidity.git"
+    "dotenv": "^6.0.0",
+    "openzeppelin-solidity": "git+ssh://git@github.com/OpenZeppelin/openzeppelin-solidity.git",
+    "truffle-hdwallet-provider": "0.0.6"
   },
   "devDependencies": {
     "@digix/tempo": "^0.2.0",

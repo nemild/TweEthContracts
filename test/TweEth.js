@@ -91,12 +91,12 @@ contract('TweEthVoter', async (accounts) => {
     await erc20Mintable.approve(tweEthVoter.address, 10, {from: accounts[2]});
 
     try {
-      console.log(web3.eth.getBlock(web3.eth.blockNumber).timestamp);
+      // console.log(web3.eth.getBlock(web3.eth.blockNumber).timestamp);
       await increaseTime( 24 * 60 * 60);
 
       const voteResult = await tweEthVoter.vote.call(123, 10, true, {from: accounts[2]});      
       await tweEthVoter.vote(123, 1, false, {from: accounts[2]});
-      console.log(web3.eth.getBlock(web3.eth.blockNumber).timestamp);
+      // console.log(web3.eth.getBlock(web3.eth.blockNumber).timestamp);
 
       assert.equal(voteResult, false, 'should not be able to vote')
     } catch(err) {
@@ -104,8 +104,4 @@ contract('TweEthVoter', async (accounts) => {
       assert.equal(true, false, 'should not get error when voting')
     }
   });
-
-  
-
-
 });
