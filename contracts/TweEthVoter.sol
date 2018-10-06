@@ -1,3 +1,6 @@
+// TODO(ND): mintandapprove
+// TODO(ND): Test framework
+
 pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -29,7 +32,14 @@ contract TweEthVoter { // CapWords
     bool quorumPassed;
   }
 
-  mapping(bytes32 => Proposal) private uuidToProposals;
+  mapping(bytes32 => Proposal) public uuidToProposals;
+
+
+  // Events
+  event ProposalCreated(bytes32 id, address proposer);
+  event VoteLogged(bytes32 id, address voter, uint256 amount, bool yes);
+  event ProposalClosed(bytes32 id, bool quorumPassed, bool yesWon, uint256 bonus);
+  event Claim(address withdrawerAddress, uint256 tokenSum);
 
   /// @param _tokenAddress Address of ERC20 token contract
   /// @param _quorumTokensPercentage Percentage of tokens needed to reach quorum
@@ -45,6 +55,7 @@ contract TweEthVoter { // CapWords
 
   function propose(bytes32 id) external returns (bool success) {
     // Store
+    // Add Events
     if(uuidToProposals[id].startTime == 0) { // test if ID does not exist
       tokenAddress.transferFrom(msg.sender, this, proposerAmount);
 
@@ -58,6 +69,8 @@ contract TweEthVoter { // CapWords
         yesWon: false,
         quorumPassed: false
       });
+      emit ProposalCreated(id, msg.sender);
+
       return true;
     }
 
@@ -75,7 +88,7 @@ contract TweEthVoter { // CapWords
         uuidToProposals[id].noVotes[msg.sender] = uuidToProposals[id].noVotes[msg.sender] + amount;
         uuidToProposals[id].noTotal = uuidToProposals[id].noTotal + amount; 
       }
-
+      emit VoteLogged(id, msg.sender, amount, voteYes);
       return true;
     }
 
@@ -105,6 +118,7 @@ contract TweEthVoter { // CapWords
           }
         }
         
+        emit ProposalClosed(id, uuidToProposals[id].quorumPassed, uuidToProposals[id].yesWon, uuidToProposals[id].bonus);
         return true;
       }
     return false;
@@ -126,7 +140,7 @@ contract TweEthVoter { // CapWords
             uuidToProposals[ids[i]].yesVotes[msg.sender] = 0;
             uuidToProposals[ids[i]].noVotes[msg.sender] = 0;
         } else if(uuidToProposals[ids[i]].yesWon) {
-          tokenSum = tokenSum + 
+          tokenSum = tokenSum + // TODO: Move calculation of how much I can claim into a getter, by ID
                     uuidToProposals[ids[i]].yesVotes[msg.sender] + 
                     uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].yesVotes[msg.sender]).div(1000);
 
@@ -142,6 +156,8 @@ contract TweEthVoter { // CapWords
 
     if (tokenSum > 0) {
       tokenAddress.transferFrom(this, msg.sender, tokenSum);
+      emit Claim(msg.sender, tokenSum);
+
       return true;
     }
 
