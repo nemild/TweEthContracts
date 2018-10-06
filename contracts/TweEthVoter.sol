@@ -80,7 +80,11 @@ contract TweEthVoter { // CapWords
   }
 
   function vote(bytes32 id, uint256 amount, bool voteYes) external returns (bool success) {
-    if(uuidToProposals[id].startTime != 0 && uuidToProposals[id].open){
+    if(
+      uuidToProposals[id].startTime != 0 && 
+      uuidToProposals[id].open && 
+      now < uuidToProposals[id].startTime + votingLength
+      ){
       tokenAddress.transferFrom(msg.sender, this, amount);
 
       if(voteYes){

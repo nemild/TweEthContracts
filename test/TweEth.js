@@ -1,6 +1,24 @@
 const ERC20Mintable = artifacts.require('ERC20Mintable');
 const TweEthVoter = artifacts.require('TweEthVoter');
 
+async function increaseTime (addSeconds) {
+  web3.currentProvider.sendAsync({
+    jsonrpc: '2.0',
+    method: 'evm_increaseTime',
+    params: [addSeconds],
+    id: new Date().getSeconds()
+  }, (err) => {
+    if (!err) {
+      web3.currentProvider.send({
+        jsonrpc: '2.0',
+        method: 'evm_mine',
+        params: [],
+        id: new Date().getSeconds()
+      });
+    }
+  });
+}
+
 contract('TweEthVoter', async (accounts) => {
   let erc20Mintable;
   let tweEthVoter;
@@ -68,15 +86,18 @@ contract('TweEthVoter', async (accounts) => {
     }
   });
 
-  it.skip('should not be able to vote after time elapsed', async () => {
+  it('should not be able to vote after time elapsed', async () => {
     await erc20Mintable.mint(accounts[2], 10);
     await erc20Mintable.approve(tweEthVoter.address, 10, {from: accounts[2]});
 
     try {
-      const voteResult = await tweEthVoter.vote.call(123, 10, true, {from: accounts[2]});
-      await web3.currentProvider.send({jsonrpc: "2.0", method: "evm_increaseTime", params: [700000], id: 0})
-      
+      console.log(web3.eth.getBlock(web3.eth.blockNumber).timestamp);
+      await increaseTime( 24 * 60 * 60);
+
+      const voteResult = await tweEthVoter.vote.call(123, 10, true, {from: accounts[2]});      
       await tweEthVoter.vote(123, 1, false, {from: accounts[2]});
+      console.log(web3.eth.getBlock(web3.eth.blockNumber).timestamp);
+
       assert.equal(voteResult, false, 'should not be able to vote')
     } catch(err) {
       console.log(err);
