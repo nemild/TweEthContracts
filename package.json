@@ -1,0 +1,39 @@
+{
+  "name": "TweEth",
+  "version": "0.0.1",
+  "description": "",
+  "main": "truffle.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "setup": "mkdir -p ./build",
+    "cover": "./node_modules/.bin/solidity-coverage",
+    "ganache-cli": "./scripts/ganache-cli.sh",
+    "lint": "solium --dir ./contracts",
+    "test": "npm run lint && npm run ganache-cli && truffle test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nemild/bskt-daf.git"
+  },
+  "author": [
+    "nemil",
+    "mtlapinski"
+  ],
+  "license": "ISC",
+  "dependencies": {
+    "openzeppelin-solidity": "git+ssh://git@github.com/OpenZeppelin/openzeppelin-solidity.git"
+  },
+  "devDependencies": {
+    "@digix/tempo": "^0.2.0",
+    "bignumber.js": "^7.2.1",
+    "eth-gas-reporter": "^0.1.10",
+    "ganache-cli": "^6.1.4",
+    "jsonfile": "^4.0.0",
+    "solidity-coverage": "^0.5.5",
+    "solium": "^1.1.7",
+    "truffle": "^4.1.13",
+    "underscore": "^1.9.1"
+  }
+}
