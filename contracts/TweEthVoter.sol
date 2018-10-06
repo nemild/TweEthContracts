@@ -103,6 +103,14 @@ contract TweEthVoter { // CapWords
     return false;
   }
 
+  function getYesVoteCnt(bytes32 id) external view returns (uint256 count){
+    return uuidToProposals[id].yesVotes[msg.sender];
+  }
+
+  function getNoVoteCnt(bytes32 id) external view returns (uint256 count) {
+    return uuidToProposals[id].noVotes[msg.sender];
+  }
+
   function close(bytes32 id) external returns (bool success) {
     if(
         uuidToProposals[id].startTime != 0 &&
@@ -132,7 +140,7 @@ contract TweEthVoter { // CapWords
     return false;
   }
 
-  function tweetThisID(bytes32 id) external returns (bool yesWon) {
+  function tweetThisID(bytes32 id) external view returns (bool yesWon) {
     if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) {
       return true; //yes votes won
     }
