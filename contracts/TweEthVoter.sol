@@ -141,7 +141,9 @@ contract TweEthVoter { // CapWords
   }
 
   function tweetThisID(bytes32 id) external view returns (bool yesWon) {
-    if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) {
+    uint256 minTokensRequired = quorumTokensPercentage.mul(tokenAddress.totalSupply()).div(100);
+    if((uuidToProposals[id].noTotal + uuidToProposals[id].yesTotal) > minTokensRequired &&
+      uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) {
       return true; //yes votes won
     }
     return false;
