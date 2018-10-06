@@ -12,10 +12,10 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
 contract TweEthVoter { // CapWords
   using SafeMath for uint256;
 
-  ERC20Mintable private tokenAddress; 
+  ERC20Mintable private tokenAddress;
   uint256 private votingLength = 10 minutes;
   uint256 private quorumTokensPercentage;
-  uint256 private proposerAmount; // the amount the proposer has staked to submit the tweet 
+  uint256 private proposerAmount; // the amount the proposer has staked to submit the tweet
 
   struct Proposal {
     address proposer;
@@ -80,19 +80,21 @@ contract TweEthVoter { // CapWords
   }
 
   function vote(bytes32 id, uint256 amount, bool voteYes) external returns (bool success) {
+
     if(
-      uuidToProposals[id].startTime != 0 && 
-      uuidToProposals[id].open && 
-      now < uuidToProposals[id].startTime + votingLength
+      uuidToProposals[id].startTime != 0 &&
+      uuidToProposals[id].open &&
+      now < uuidToProposals[id].startTime + votingLength &&
+      amount > 0
       ){
       tokenAddress.transferFrom(msg.sender, this, amount);
 
       if(voteYes){
         uuidToProposals[id].yesVotes[msg.sender] = uuidToProposals[id].yesVotes[msg.sender] + amount;
-        uuidToProposals[id].yesTotal = uuidToProposals[id].yesTotal + amount; 
+        uuidToProposals[id].yesTotal = uuidToProposals[id].yesTotal + amount;
       } else {
         uuidToProposals[id].noVotes[msg.sender] = uuidToProposals[id].noVotes[msg.sender] + amount;
-        uuidToProposals[id].noTotal = uuidToProposals[id].noTotal + amount; 
+        uuidToProposals[id].noTotal = uuidToProposals[id].noTotal + amount;
       }
       emit VoteLogged(id, msg.sender, amount, voteYes);
       return true;
@@ -103,8 +105,8 @@ contract TweEthVoter { // CapWords
 
   function close(bytes32 id) external returns (bool success) {
     if(
-        uuidToProposals[id].startTime != 0 && 
-        uuidToProposals[id].open && 
+        uuidToProposals[id].startTime != 0 &&
+        uuidToProposals[id].open &&
         uuidToProposals[id].startTime + votingLength > now
       ){
         // 1. Close
@@ -116,17 +118,24 @@ contract TweEthVoter { // CapWords
         if((uuidToProposals[id].noTotal + uuidToProposals[id].yesTotal) > minTokensRequired) { // quorum passed
           uuidToProposals[id].quorumPassed = true;
           if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) { // yes votes won
-            uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(1000).div(uuidToProposals[id].yesTotal); // TODO fix 1000 
+            uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(1000).div(uuidToProposals[id].yesTotal); // TODO fix 1000
             uuidToProposals[id].yesWon = true;
           } else { //no votes won
             uuidToProposals[id].bonus = uuidToProposals[id].yesTotal.div(uuidToProposals[id].noTotal);
             uuidToProposals[id].yesWon = false;
           }
         }
-        
+
         emit ProposalClosed(id, uuidToProposals[id].quorumPassed, uuidToProposals[id].yesWon, uuidToProposals[id].bonus);
         return true;
       }
+    return false;
+  }
+
+  function tweetThisID(bytes32 id) external returns (bool yesWon) {
+    if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) {
+      return true; //yes votes won
+    }
     return false;
   }
 
@@ -139,21 +148,21 @@ contract TweEthVoter { // CapWords
       if(uuidToProposals[ids[i]].startTime != 0) {
 
         if(!uuidToProposals[ids[i]].quorumPassed) {
-          tokenSum = tokenSum + 
-            uuidToProposals[ids[i]].yesVotes[msg.sender] + 
+          tokenSum = tokenSum +
+            uuidToProposals[ids[i]].yesVotes[msg.sender] +
             uuidToProposals[ids[i]].noVotes[msg.sender];
 
             uuidToProposals[ids[i]].yesVotes[msg.sender] = 0;
             uuidToProposals[ids[i]].noVotes[msg.sender] = 0;
         } else if(uuidToProposals[ids[i]].yesWon) {
           tokenSum = tokenSum + // TODO: Move calculation of how much I can claim into a getter, by ID
-                    uuidToProposals[ids[i]].yesVotes[msg.sender] + 
+                    uuidToProposals[ids[i]].yesVotes[msg.sender] +
                     uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].yesVotes[msg.sender]).div(1000);
 
           uuidToProposals[ids[i]].yesVotes[msg.sender] = 0;
         } else {
-          tokenSum = tokenSum + 
-                    uuidToProposals[ids[i]].noVotes[msg.sender] + 
+          tokenSum = tokenSum +
+                    uuidToProposals[ids[i]].noVotes[msg.sender] +
                     uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].noVotes[msg.sender]).div(1000);
           uuidToProposals[ids[i]].noVotes[msg.sender] = 0;
         }
