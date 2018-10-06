@@ -13,6 +13,26 @@
  */
 
 module.exports = {
-  // See <http://truffleframework.com/docs/advanced/configuration>
-  // to customize your Truffle configuration!
+  networks: {
+    development: {
+      host: 'localhost',
+      port: 7545,
+      network_id: '*'
+      // gas: 8000029
+    },
+    coverage: {
+      host: 'localhost',
+      network_id: '*',
+      port: 8555,
+      gas: 0xfffffffffff,
+      gasPrice: 0x01
+    }
+  },
+  mocha: {
+    reporter: 'eth-gas-reporter',
+    reporterOptions : {
+      currency: 'USD',
+      gasPrice: 10
+    }
+  }
 };

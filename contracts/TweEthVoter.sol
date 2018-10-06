@@ -57,7 +57,9 @@ contract TweEthVoter { // CapWords
     // Store
     // Add Events
     if(uuidToProposals[id].startTime == 0) { // test if ID does not exist
-      tokenAddress.transferFrom(msg.sender, this, proposerAmount);
+      if (proposerAmount > 0) {
+        tokenAddress.transferFrom(msg.sender, this, proposerAmount);
+      }
 
       uuidToProposals[id] = Proposal({
         proposer: msg.sender, // Added for transparency, not internal usage
