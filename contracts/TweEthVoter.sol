@@ -140,12 +140,17 @@ contract TweEthVoter is Ownable { // CapWords
             uint256 percentageToWinner = uint256(100).sub(percentageToTweeterFinal);
 
           if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) { // yes votes won
-            tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].noTotal.mul(percentageToTweeterFinal).div(uint256(100)));
+            if(uuidToProposals[id].noTotal.mul(percentageToTweeterFinal).div(uint256(100)) > 0) {
+              tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].noTotal.mul(percentageToTweeterFinal).div(uint256(100)));
+            }
 
             uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(percentageToWinner).div(uint256(100)).mul(bonusMultipler).div(uuidToProposals[id].yesTotal);
             uuidToProposals[id].yesWon = true;
           } else { //no votes won
-            tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].yesTotal.mul(percentageToTweeterFinal).div(uint256(100)));
+            if(uuidToProposals[id].yesTotal.mul(percentageToTweeterFinal).div(uint256(100)) > 0) {
+              tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].yesTotal.mul(percentageToTweeterFinal).div(uint256(100)));
+            }
+
             uuidToProposals[id].bonus = uuidToProposals[id].yesTotal.mul(percentageToWinner).div(uint256(100)).mul(bonusMultipler).div(uuidToProposals[id].noTotal);
             uuidToProposals[id].yesWon = false;
           }
@@ -188,7 +193,7 @@ contract TweEthVoter is Ownable { // CapWords
   }
 
   function claim(bytes32[] ids) external returns (bool sent) {
-    uint256 tokenSum; //TODO memory??
+    uint256 tokenSum;
 
     require(ids.length < 256);
 
