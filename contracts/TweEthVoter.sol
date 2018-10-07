@@ -37,6 +37,7 @@ contract TweEthVoter { // CapWords
 
   // Events
   event ProposalCreated(bytes32 id, address proposer);
+  event ProposalFailed(bytes32 id, address proposer);
   event VoteLogged(bytes32 id, address voter, uint256 amount, bool yes);
   event ProposalClosed(bytes32 id, bool quorumPassed, bool yesWon, uint256 bonus);
   event Claim(address withdrawerAddress, uint256 tokenSum);
@@ -75,7 +76,7 @@ contract TweEthVoter { // CapWords
 
       return true;
     }
-
+    emit ProposalFailed(id, msg.sender);
     return false;
   }
 
@@ -115,7 +116,7 @@ contract TweEthVoter { // CapWords
     if(
         uuidToProposals[id].startTime != 0 &&
         uuidToProposals[id].open &&
-        uuidToProposals[id].startTime + votingLength > now
+        uuidToProposals[id].startTime + votingLength < now
       ){
         // 1. Close
         uuidToProposals[id].open = false;
