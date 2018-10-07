@@ -4,7 +4,7 @@
 pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
+import "./ERC20MintableAndApprove.sol";
 
 /// @title TweEthVoter
 /// @author nemild mtlapinski
@@ -12,7 +12,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/ERC20Mintable.sol";
 contract TweEthVoter { // CapWords
   using SafeMath for uint256;
 
-  ERC20Mintable private tokenAddress;
+  ERC20MintableAndApprove private tokenAddress;
   uint256 private votingLength = 10 minutes;
   uint256 private quorumTokensPercentage;
   uint256 private proposerAmount; // the amount the proposer has staked to submit the tweet
@@ -48,19 +48,13 @@ contract TweEthVoter { // CapWords
     address _tokenAddress,
     uint256 _quorumTokensPercentage,
     uint256 _proposerAmount) public {
-    tokenAddress = ERC20Mintable(_tokenAddress);
+    tokenAddress = ERC20MintableAndApprove(_tokenAddress);
     quorumTokensPercentage = _quorumTokensPercentage;
     proposerAmount = _proposerAmount;
   }
 
   function propose(bytes32 id) external returns (bool success) {
-    // Store
-    // Add Events
     if(uuidToProposals[id].startTime == 0) { // test if ID does not exist
-      if (proposerAmount > 0) {
-        tokenAddress.transferFrom(msg.sender, this, proposerAmount);
-      }
-
       uuidToProposals[id] = Proposal({
         proposer: msg.sender, // Added for transparency, not internal usage
         startTime: now,
@@ -73,13 +67,18 @@ contract TweEthVoter { // CapWords
       });
       emit ProposalCreated(id, msg.sender);
 
+      if (proposerAmount > 0) {
+        bool result = this.vote(id, proposerAmount, true);
+        require(result);
+      }
+
       return true;
     }
 
     return false;
   }
 
-  function vote(bytes32 id, uint256 amount, bool voteYes) external returns (bool success) {
+  function vote(bytes32 id, uint256 amount, bool voteYes) public returns (bool success) {
 
     if(
       uuidToProposals[id].startTime != 0 &&
