@@ -14,7 +14,7 @@ contract TweEthVoter is Ownable { // CapWords
   uint256 private votingLength = 10 minutes;
   uint256 private quorumTokensPercentage;
 
-  uint256 private percentageToTweeter = 50;
+  uint256 private percentageToTweeter = 25;
   uint256 bonusMultipler = 10000000000;
 
   struct Proposal {
@@ -192,6 +192,36 @@ contract TweEthVoter is Ownable { // CapWords
     return false;
   }
 
+  function claimableAmount(bytes32 id, address addr) constant public returns (uint256 amount){
+    uint256 tokenSum;
+
+      if(uuidToProposals[id].startTime != 0) {
+
+        if(!uuidToProposals[id].quorumPassed) {
+          tokenSum = tokenSum +
+            uuidToProposals[id].yesVotes[addr] +
+            uuidToProposals[id].noVotes[addr];
+
+            /* uuidToProposals[id].yesVotes[addr] = 0;
+            uuidToProposals[id].noVotes[addr] = 0; */
+        } else if(uuidToProposals[id].yesWon) {
+          tokenSum = tokenSum + // TODO: Move calculation of how much I can claim into a getter, by ID
+                    uuidToProposals[id].yesVotes[addr] +
+                    uuidToProposals[id].bonus.mul(uuidToProposals[id].yesVotes[addr]).div(bonusMultipler);
+
+          /* uuidToProposals[ids[i]].yesVotes[addr] = 0; */
+        } else {
+          tokenSum = tokenSum +
+                    uuidToProposals[id].noVotes[addr] +
+                    uuidToProposals[id].bonus.mul(uuidToProposals[id].noVotes[addr]).div(bonusMultipler);
+          /* uuidToProposals[id].noVotes[addr] = 0; */
+        }
+        return tokenSum;
+      }
+      return 0;
+  }
+
+
   function claim(bytes32[] ids) external returns (bool sent) {
     uint256 tokenSum;
 
@@ -200,23 +230,25 @@ contract TweEthVoter is Ownable { // CapWords
     for (uint8 i = 0; i < ids.length; i++){
       if(uuidToProposals[ids[i]].startTime != 0) {
 
+        tokenSum = tokenSum + claimableAmount(ids[i], msg.sender);
+
         if(!uuidToProposals[ids[i]].quorumPassed) {
-          tokenSum = tokenSum +
+          /* tokenSum = tokenSum +
             uuidToProposals[ids[i]].yesVotes[msg.sender] +
-            uuidToProposals[ids[i]].noVotes[msg.sender];
+            uuidToProposals[ids[i]].noVotes[msg.sender]; */
 
             uuidToProposals[ids[i]].yesVotes[msg.sender] = 0;
             uuidToProposals[ids[i]].noVotes[msg.sender] = 0;
         } else if(uuidToProposals[ids[i]].yesWon) {
-          tokenSum = tokenSum + // TODO: Move calculation of how much I can claim into a getter, by ID
+          /* tokenSum = tokenSum + // TODO: Move calculation of how much I can claim into a getter, by ID
                     uuidToProposals[ids[i]].yesVotes[msg.sender] +
-                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].yesVotes[msg.sender]).div(bonusMultipler);
+                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].yesVotes[msg.sender]).div(bonusMultipler); */
 
           uuidToProposals[ids[i]].yesVotes[msg.sender] = 0;
         } else {
-          tokenSum = tokenSum +
+          /* tokenSum = tokenSum +
                     uuidToProposals[ids[i]].noVotes[msg.sender] +
-                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].noVotes[msg.sender]).div(bonusMultipler);
+                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].noVotes[msg.sender]).div(bonusMultipler); */
           uuidToProposals[ids[i]].noVotes[msg.sender] = 0;
         }
       }
