@@ -1,4 +1,4 @@
-const ERC20Mintable = artifacts.require('ERC20Mintable');
+const ERC20MintableAndApprove = artifacts.require('ERC20MintableAndApprove');
 const TweEthVoter = artifacts.require('TweEthVoter');
 
 async function increaseTime (addSeconds) {
@@ -24,11 +24,10 @@ contract('TweEthVoter', async (accounts) => {
   let tweEthVoter;
 
   before(async function() {
-    erc20Mintable = await ERC20Mintable.new({from: accounts[0]});
+    erc20Mintable = await ERC20MintableAndApprove.new({from: accounts[0]});
     tweEthVoter = await TweEthVoter.new(
         erc20Mintable.address,
         5,
-        0,
         {from: accounts[0]}
       );
   });
@@ -261,11 +260,10 @@ contract('TweEthVoterTwo', async (accounts) => {
   let tweEthVoter;
 
   before(async function() {
-    erc20Mintable = await ERC20Mintable.new({from: accounts[0]});
+    erc20Mintable = await ERC20MintableAndApprove.new({from: accounts[0]});
     tweEthVoter = await TweEthVoter.new(
         erc20Mintable.address,
         5,
-        0,
         {from: accounts[0]}
       );
   });
