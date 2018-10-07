@@ -42,6 +42,7 @@ contract TweEthVoter is Ownable { // CapWords
   event ProposalCreated(bytes32 id, address proposer);
   event ProposalFailed(bytes32 id, address proposer);
   event VoteLogged(bytes32 id, address voter, uint256 amount, bool yes);
+  event CloseStart(bytes32 id, address payoutAddr);
   event ProposalClosed(bytes32 id, bool quorumPassed, bool yesWon, uint256 bonus);
   event Claim(address withdrawerAddress, uint256 tokenSum);
 
@@ -118,6 +119,7 @@ contract TweEthVoter is Ownable { // CapWords
 //TODO - close is only owner and 1/2 of the tokens to be givenout get sent to a a specified addr
 
   function close(bytes32 id, address tweeterPayoutAddress) external onlyOwner returns (bool success) {
+    emit CloseStart(id, tweeterPayoutAddress);
     if(
         uuidToProposals[id].startTime != 0 &&
         uuidToProposals[id].open &&
@@ -129,7 +131,7 @@ contract TweEthVoter is Ownable { // CapWords
         // 2. Determine winner
         uint256 minTokensRequired = quorumTokensPercentage.mul(tokenAddress.totalSupply()).div(uint256(100));
 
-        if((uuidToProposals[id].noTotal + uuidToProposals[id].yesTotal) > minTokensRequired) { // quorum passed
+       if((uuidToProposals[id].noTotal + uuidToProposals[id].yesTotal) > minTokensRequired) { // quorum passed
           uuidToProposals[id].quorumPassed = true;
           uuidToProposals[id].tweeterPayoutAddress = tweeterPayoutAddress;
           if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) { // yes votes won
@@ -211,9 +213,10 @@ contract TweEthVoter is Ownable { // CapWords
         }
       }
     }
+    emit Claim(msg.sender, tokenSum);
 
     if (tokenSum > 0) {
-      tokenAddress.transferFrom(this, msg.sender, tokenSum);
+      tokenAddress.transfer(msg.sender, tokenSum);
       emit Claim(msg.sender, tokenSum);
 
       return true;
