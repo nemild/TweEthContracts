@@ -117,7 +117,7 @@ contract TweEthVoter is Ownable { // CapWords
 
 //TODO - close is only owner and 1/2 of the tokens to be givenout get sent to a a specified addr
 
-  function close(bytes32 id, address tweeterPayoutAddress) external onlyOwner returns (bool success) {
+  function close(bytes32 id, address percentageToTweeter) external onlyOwner returns (bool success) {
     if(
         uuidToProposals[id].startTime != 0 &&
         uuidToProposals[id].open &&
@@ -127,21 +127,26 @@ contract TweEthVoter is Ownable { // CapWords
         uuidToProposals[id].open = false;
 
         // 2. Determine winner
-        uint256 minTokensRequired = quorumTokensPercentage.mul(tokenAddress.totalSupply()).div(100);
+        uint256 minTokensRequired = quorumTokensPercentage.mul(tokenAddress.totalSupply()).div(uint256(100));
 
         if((uuidToProposals[id].noTotal + uuidToProposals[id].yesTotal) > minTokensRequired) { // quorum passed
           uuidToProposals[id].quorumPassed = true;
           uuidToProposals[id].tweeterPayoutAddress = tweeterPayoutAddress;
           if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) { // yes votes won
 
-            uint256 percentageToWinner = uint256(100).sub(percentageToTweeter);
-            tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].noTotal.mul(percentageToTweeter).div(100));
+            uint256 percentageToTweeterFinal = percentageToTweeter;
+            if(percentageToTweeter == address(0)) {
+              percentageToTweeterFinal = 0;
+            }
 
-            uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(percentageToWinner).div(100).mul(bonusMultipler).div(uuidToProposals[id].yesTotal);
+            uint256 percentageToWinner = uint256(100).sub(percentageToTweeterFinal);
+            tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].noTotal.mul(percentageToTweeterFinal).div(uint256(100)));
+
+            uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(percentageToWinner).div(uint256(100)).mul(bonusMultipler).div(uuidToProposals[id].yesTotal);
             uuidToProposals[id].yesWon = true;
           } else { //no votes won
-            tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].yesTotal.mul(percentageToTweeter).div(100));
-            uuidToProposals[id].bonus = uuidToProposals[id].yesTotal.mul(percentageToWinner).div(100).mul(bonusMultipler).div(uuidToProposals[id].noTotal);
+            tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].yesTotal.mul(percentageToTweeterFinal).div(uint256(100)));
+            uuidToProposals[id].bonus = uuidToProposals[id].yesTotal.mul(percentageToWinner).div(uint256(100)).mul(bonusMultipler).div(uuidToProposals[id].noTotal);
             uuidToProposals[id].yesWon = false;
           }
         }
@@ -169,7 +174,7 @@ contract TweEthVoter is Ownable { // CapWords
   }
 
   function tweetThisID(bytes32 id) external view returns (bool yesWon) {
-    uint256 minTokensRequired = quorumTokensPercentage.mul(tokenAddress.totalSupply()).div(100);
+    uint256 minTokensRequired = quorumTokensPercentage.mul(tokenAddress.totalSupply()).div(uint256(100));
     if((uuidToProposals[id].noTotal + uuidToProposals[id].yesTotal) > minTokensRequired &&
       uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) {
       return true; //yes votes won
