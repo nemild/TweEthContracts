@@ -5,17 +5,18 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./ERC20MintableAndApprove.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 /// @title TweEthVoter
 /// @author nemild mtlapinski
 
-contract TweEthVoter { // CapWords
+contract TweEthVoter is Ownable { // CapWords
   using SafeMath for uint256;
 
   ERC20MintableAndApprove private tokenAddress;
   uint256 private votingLength = 10 minutes;
   uint256 private quorumTokensPercentage;
-  uint256 private proposerAmount; // the amount the proposer has staked to submit the tweet
+  uint256 private percentageToTweeter = 50;
 
   struct Proposal {
     address proposer;
@@ -30,10 +31,10 @@ contract TweEthVoter { // CapWords
 
     bool yesWon;
     bool quorumPassed;
+    address tweeterPayoutAddress;
   }
 
   mapping(bytes32 => Proposal) public uuidToProposals;
-
 
   // Events
   event ProposalCreated(bytes32 id, address proposer);
@@ -44,19 +45,16 @@ contract TweEthVoter { // CapWords
 
   /// @param _tokenAddress Address of ERC20 token contract
   /// @param _quorumTokensPercentage Percentage of tokens needed to reach quorum
-  /// @param _proposerAmount Number of tokens required to submit a proposed tweet
   constructor(
     address _tokenAddress,
-    uint256 _quorumTokensPercentage,
-    uint256 _proposerAmount) public {
+    uint256 _quorumTokensPercentage) public {
     tokenAddress = ERC20MintableAndApprove(_tokenAddress);
     quorumTokensPercentage = _quorumTokensPercentage;
-    proposerAmount = _proposerAmount;
   }
 
 //TODO - propose puts tokens into a yes vote -
 
-  function propose(bytes32 id) external returns (bool success) {
+  function propose(bytes32 id, uint256 proposerAmount) external returns (bool success) {
     if(uuidToProposals[id].startTime == 0) { // test if ID does not exist
       uuidToProposals[id] = Proposal({
         proposer: msg.sender, // Added for transparency, not internal usage
@@ -66,7 +64,8 @@ contract TweEthVoter { // CapWords
         yesTotal: 0,
         bonus: 0,
         yesWon: false,
-        quorumPassed: false
+        quorumPassed: false,
+        tweeterPayoutAddress: 0x0
       });
       emit ProposalCreated(id, msg.sender);
 
@@ -115,7 +114,7 @@ contract TweEthVoter { // CapWords
 
 //TODO - close is only owner and 1/2 of the tokens to be givenout get sent to a a specified addr
 
-  function close(bytes32 id) external returns (bool success) {
+  function close(bytes32 id, address tweeterPayoutAddress) external onlyOwner returns (bool success) {
     if(
         uuidToProposals[id].startTime != 0 &&
         uuidToProposals[id].open &&
@@ -129,11 +128,17 @@ contract TweEthVoter { // CapWords
 
         if((uuidToProposals[id].noTotal + uuidToProposals[id].yesTotal) > minTokensRequired) { // quorum passed
           uuidToProposals[id].quorumPassed = true;
+          uuidToProposals[id].tweeterPayoutAddress = tweeterPayoutAddress;
           if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) { // yes votes won
-            uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(1000).div(uuidToProposals[id].yesTotal); // TODO fix 1000
+
+          uint256 percentageToWinner = uint256(100).sub(percentageToTweeter);
+            tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].noTotal.mul(percentageToTweeter).div(100));
+
+            uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(percentageToWinner).div(100).mul(1000).div(uuidToProposals[id].yesTotal); // TODO fix 1000
             uuidToProposals[id].yesWon = true;
           } else { //no votes won
-            uuidToProposals[id].bonus = uuidToProposals[id].yesTotal.div(uuidToProposals[id].noTotal);
+            tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].yesTotal.mul(percentageToTweeter).div(100));
+            uuidToProposals[id].bonus = uuidToProposals[id].yesTotal.mul(percentageToWinner).div(100).div(uuidToProposals[id].noTotal);
             uuidToProposals[id].yesWon = false;
           }
         }
