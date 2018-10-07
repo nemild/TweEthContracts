@@ -33,11 +33,43 @@ contract('TweEthVoter', async (accounts) => {
       );
   });
 
-  it('should allow the creation of a proposal', async () => {
-    await erc20Mintable.mint(accounts[0], 10, {from: accounts[0]});
 
-    const proposeResult = await tweEthVoter.propose.call(123);
-    await tweEthVoter.propose(123);
+  it('should allow the creation of a proposal', async () => {
+    //await erc20Mintable.mint(accounts[0], 10, {from: accounts[0]});
+
+    const proposeResult = await tweEthVoter.propose.call(123, {from: accounts[1]});
+    await tweEthVoter.propose(123, {from: accounts[1]});
+    assert.equal(proposeResult, true, 'Proposal was not successful');
+
+    // const result = await erc20Mintable.totalSupply.call();
+    // console.log(result.toNumber());
+
+    // let instance = await TweEthVoter.deployed(erc20Mintable.address, 5, 0);
+
+    // assert.equal(balance.valueOf(), 10000);
+  });
+
+
+  // it('should NOT allow the creation of a proposal with no tokens', async () => {
+  //   console.log('pre approve')
+  //   await erc20Mintable.approve(tweEthVoter.address, 10, {from: accounts[1]})
+  //   //note this must be run before any other code mints for acccount [1]
+  //   console.log('pre-propose.call');
+  //   const proposeResult = await tweEthVoter.propose.call(123, {from: accounts[1]});
+  //   console.log('pre-propose');
+  //   await tweEthVoter.propose(123, {from: accounts[1]});
+  //   console.log('pre-assert');
+  //   assert.equal(proposeResult, false, 'Proposal was successful, and shouldnt be');
+  //   console.log('post-assert');
+  //
+  // });
+
+  it('should allow the creation of a proposal with token', async () => {
+    await erc20Mintable.mint(accounts[1], 10, {from: accounts[0]});
+    await erc20Mintable.approve(tweEthVoter.address, 10, {from: accounts[1]})
+
+    const proposeResult = await tweEthVoter.propose.call(1234, {from: accounts[1]});
+    await tweEthVoter.propose(123, {from: accounts[1]});
     assert.equal(proposeResult, true, 'Proposal was not successful');
 
     // const result = await erc20Mintable.totalSupply.call();
@@ -49,24 +81,20 @@ contract('TweEthVoter', async (accounts) => {
   });
 
   it('should NOT allow the creation of an existing proposal', async () => {
-    await erc20Mintable.mint(accounts[0], 10, {from: accounts[0]});
+    await erc20Mintable.mint(accounts[1], 10, {from: accounts[0]});
+    await erc20Mintable.approve(tweEthVoter.address, 10, {from: accounts[1]})
 
-    const proposeResult = await tweEthVoter.propose.call(123);
-    await tweEthVoter.propose(123);
+    const proposeResult = await tweEthVoter.propose.call(123, {from: accounts[1]});
+    await tweEthVoter.propose(123, {from: accounts[1]});
     assert.equal(proposeResult, false, 'Proposal was successful, and shouldnt be');
-
-    // const result = await erc20Mintable.totalSupply.call();
-    // console.log(result.toNumber());
-
-    // let instance = await TweEthVoter.deployed(erc20Mintable.address, 5, 0);
-
-    // assert.equal(balance.valueOf(), 10000);
   });
 
   it('attempt to vote with no tokens', async () => {
     // const tweEthVoter = await TweEthVoter.deployed();
+    await erc20Mintable.approve(tweEthVoter.address, 10, {from: accounts[5]})
+
     try {
-      const proposeResult = await tweEthVoter.vote.call(123, 1, true, {from: accounts[1]});
+      const proposeResult = await tweEthVoter.vote.call(123, 1, true, {from: accounts[5]});
       assert.equal(true, false, 'should not be able to vote')
     } catch(err) {
     }
@@ -166,6 +194,21 @@ contract('TweEthVoter', async (accounts) => {
   });
 
 
+  //make sure closed and ppl cant keep voting
+  it('should not allow closing prematurely (before votingLength (=10) min elapsed)', async () => {
+
+    try {
+      const closeResult = await tweEthVoter.close.call(123, {from: accounts[2]});
+      await tweEthVoter.close(123, {from: accounts[2]});
+      assert.equal(closeResult, false, 'shouldnt be able to close prematurely');
+    } catch(err) {
+      console.log(err);
+      assert.equal(true, false, 'should not get error when trying to close');
+    }
+  });
+
+
+
   it('should not be able to vote after time elapsed', async () => {
     await erc20Mintable.mint(accounts[2], 10);
     await erc20Mintable.approve(tweEthVoter.address, 10, {from: accounts[2]});
@@ -186,9 +229,8 @@ contract('TweEthVoter', async (accounts) => {
   });
 
 
-//propose - existing id
-//propose  - prposer zero tokens
-//prposer
+//propose - existing id - DONE
+//propose  - prposer has zero tokens
 
 //check quorum token percenrtage
 
@@ -196,8 +238,8 @@ contract('TweEthVoter', async (accounts) => {
   // double votes add up to the right sum
      //for both yes and no noVote
 
-     //make sure closed and ppl cant keep voting
-     //cant close prematurely
+
+     //cant close prematurely - DONE
      //bonus calculated prpoerly
 
 
