@@ -103,7 +103,6 @@ contract('TweEthVoter', async (accounts) => {
   });
 
   it('should not allow attempt to vote with no tokens', async () => {
-
     try {
       const proposeResult = await tweEthVoter.vote.call(123, 1, true, {from: accounts[5]});
       assert.equal(true, false, 'should not be able to vote')
@@ -124,7 +123,7 @@ contract('TweEthVoter', async (accounts) => {
     }
   });
 
-  it('should vote no succesfully', async () => {
+  it('should vote no successfully', async () => {
     await erc20Mintable.mintAndApprove(accounts[2], tweEthVoter.address, 10, {from: accounts[0]});
 
     try {
@@ -154,9 +153,6 @@ contract('TweEthVoter', async (accounts) => {
       const voteSum = await tweEthVoter.getYesVoteCnt.call(123,{from: accounts[3]});
       await tweEthVoter.getYesVoteCnt.call(123,{from: accounts[3]});
       assert.equal(voteSum.toNumber(), 9, 'sum of two yes votes should be 9')
-
-
-
     } catch(err) {
       console.log(err);
       assert.equal(true, false, 'should not get error when voting yes twice (4 & 5)')
@@ -205,8 +201,6 @@ contract('TweEthVoter', async (accounts) => {
       assert.equal(true, false, 'should not get error when trying to close');
     }
   });
-
-
 
   it('should not be able to vote after time elapsed', async () => {
     await erc20Mintable.mintAndApprove(accounts[2], tweEthVoter.address, 10, {from: accounts[0]});

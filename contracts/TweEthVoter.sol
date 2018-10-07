@@ -1,6 +1,3 @@
-// TODO(ND): mintandapprove
-// TODO(ND): Test framework
-
 pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
@@ -17,7 +14,7 @@ contract TweEthVoter is Ownable { // CapWords
   uint256 private votingLength = 10 minutes;
   uint256 private quorumTokensPercentage;
 
-  uint256 private percentageToTweeter = 50;
+  uint256 private percentageToTweeter = 25;
   uint256 bonusMultipler = 10000000000;
 
   struct Proposal {
@@ -84,14 +81,13 @@ contract TweEthVoter is Ownable { // CapWords
   }
 
   function vote(bytes32 id, uint256 amount, bool voteYes) public returns (bool success) {
+    require(amount > 0);
 
     if(
       uuidToProposals[id].startTime != 0 &&
       uuidToProposals[id].open &&
-      now < uuidToProposals[id].startTime + votingLength &&
-      amount > 0
-      ){
-      emit VoteLogged(id, msg.sender, amount, voteYes);
+      now < uuidToProposals[id].startTime + votingLength
+    ){
       tokenAddress.transferFrom(msg.sender, this, amount);
 
       if (voteYes) {
@@ -116,8 +112,6 @@ contract TweEthVoter is Ownable { // CapWords
     return uuidToProposals[id].noVotes[msg.sender];
   }
 
-//TODO - close is only owner and 1/2 of the tokens to be givenout get sent to a a specified addr
-
   function close(bytes32 id, address tweeterPayoutAddress) external onlyOwner returns (bool success) {
     emit CloseStart(id, tweeterPayoutAddress);
     if(
@@ -134,14 +128,14 @@ contract TweEthVoter is Ownable { // CapWords
        if((uuidToProposals[id].noTotal + uuidToProposals[id].yesTotal) > minTokensRequired) { // quorum passed
           uuidToProposals[id].quorumPassed = true;
           uuidToProposals[id].tweeterPayoutAddress = tweeterPayoutAddress;
-          if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) { // yes votes won
 
             uint256 percentageToTweeterFinal = percentageToTweeter;
             if(tweeterPayoutAddress == address(0)) {
               percentageToTweeterFinal = 0;
             }
-
             uint256 percentageToWinner = uint256(100).sub(percentageToTweeterFinal);
+
+          if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) { // yes votes won
             tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].noTotal.mul(percentageToTweeterFinal).div(uint256(100)));
 
             uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(percentageToWinner).div(uint256(100)).mul(bonusMultipler).div(uuidToProposals[id].yesTotal);
