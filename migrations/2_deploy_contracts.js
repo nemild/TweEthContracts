@@ -5,6 +5,6 @@ module.exports = function(deployer, network, accounts) {
   deployer.deploy(ERC20MintableAndApprove).then(function() {
     return ERC20MintableAndApprove.deployed();
   }).then(function(token) {
-    deployer.deploy(TweEthVoter, token.address, 5, 0, {from: accounts[0]});
+    deployer.deploy(TweEthVoter, token.address, 5, {from: accounts[0]});
   });
 }
