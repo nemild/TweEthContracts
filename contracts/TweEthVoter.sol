@@ -14,7 +14,7 @@ contract TweEthVoter is Ownable { // CapWords
   uint256 private votingLength = 10 minutes;
   uint256 private quorumTokensPercentage;
 
-  uint256 private percentageToTweeter = 50;
+  uint256 private percentageToTweeter = 25;
   uint256 bonusMultipler = 10000000000;
 
   struct Proposal {
