@@ -117,7 +117,7 @@ contract TweEthVoter is Ownable { // CapWords
 
 //TODO - close is only owner and 1/2 of the tokens to be givenout get sent to a a specified addr
 
-  function close(bytes32 id, address percentageToTweeter) external onlyOwner returns (bool success) {
+  function close(bytes32 id, address tweeterPayoutAddress) external onlyOwner returns (bool success) {
     if(
         uuidToProposals[id].startTime != 0 &&
         uuidToProposals[id].open &&
@@ -135,7 +135,7 @@ contract TweEthVoter is Ownable { // CapWords
           if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) { // yes votes won
 
             uint256 percentageToTweeterFinal = percentageToTweeter;
-            if(percentageToTweeter == address(0)) {
+            if(tweeterPayoutAddress == address(0)) {
               percentageToTweeterFinal = 0;
             }
 
