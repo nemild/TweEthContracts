@@ -54,6 +54,8 @@ contract TweEthVoter { // CapWords
     proposerAmount = _proposerAmount;
   }
 
+//TODO - propose puts tokens into a yes vote -
+
   function propose(bytes32 id) external returns (bool success) {
     // Store
     // Add Events
@@ -111,6 +113,8 @@ contract TweEthVoter { // CapWords
   function getNoVoteCnt(bytes32 id) external view returns (uint256 count) {
     return uuidToProposals[id].noVotes[msg.sender];
   }
+
+//TODO - close is only owner and 1/2 of the tokens to be givenout get sent to a a specified addr
 
   function close(bytes32 id) external returns (bool success) {
     if(
