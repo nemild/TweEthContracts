@@ -72,7 +72,7 @@ contract TweEthVoter is Ownable { // CapWords
       emit ProposalCreated(id, msg.sender);
 
       if (proposerAmount > 0) {
-        bool result = this.vote(id, proposerAmount, true);
+        bool result = vote(id, proposerAmount, true);
         require(result);
       }
 
@@ -90,6 +90,7 @@ contract TweEthVoter is Ownable { // CapWords
       now < uuidToProposals[id].startTime + votingLength &&
       amount > 0
       ){
+      emit VoteLogged(id, msg.sender, amount, voteYes);
       tokenAddress.transferFrom(msg.sender, this, amount);
 
       if (voteYes) {
