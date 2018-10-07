@@ -16,7 +16,9 @@ contract TweEthVoter is Ownable { // CapWords
   ERC20MintableAndApprove private tokenAddress;
   uint256 private votingLength = 10 minutes;
   uint256 private quorumTokensPercentage;
+
   uint256 private percentageToTweeter = 50;
+  uint256 bonusMultipler = 10000000000;
 
   struct Proposal {
     address proposer;
@@ -131,14 +133,14 @@ contract TweEthVoter is Ownable { // CapWords
           uuidToProposals[id].tweeterPayoutAddress = tweeterPayoutAddress;
           if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) { // yes votes won
 
-          uint256 percentageToWinner = uint256(100).sub(percentageToTweeter);
+            uint256 percentageToWinner = uint256(100).sub(percentageToTweeter);
             tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].noTotal.mul(percentageToTweeter).div(100));
 
-            uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(percentageToWinner).div(100).mul(1000).div(uuidToProposals[id].yesTotal); // TODO fix 1000
+            uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(percentageToWinner).div(100).mul(bonusMultipler).div(uuidToProposals[id].yesTotal);
             uuidToProposals[id].yesWon = true;
           } else { //no votes won
             tokenAddress.transfer(tweeterPayoutAddress, uuidToProposals[id].yesTotal.mul(percentageToTweeter).div(100));
-            uuidToProposals[id].bonus = uuidToProposals[id].yesTotal.mul(percentageToWinner).div(100).div(uuidToProposals[id].noTotal);
+            uuidToProposals[id].bonus = uuidToProposals[id].yesTotal.mul(percentageToWinner).div(100).mul(bonusMultipler).div(uuidToProposals[id].noTotal);
             uuidToProposals[id].yesWon = false;
           }
         }
@@ -147,6 +149,22 @@ contract TweEthVoter is Ownable { // CapWords
         return true;
       }
     return false;
+  }
+
+  function isProposalOpen(bytes32 id) external view returns (bool isOpen) {
+    return uuidToProposals[id].open;
+  }
+
+  function getBonusAmount(bytes32 id) external view returns (uint256 bonusAmount) {
+    return uuidToProposals[id].bonus;
+  }
+
+  function getNoTotal(bytes32 id) external view returns (uint256 noTotal) {
+    return uuidToProposals[id].noTotal;
+  }
+
+  function getYesTotal(bytes32 id) external view returns (uint256 yesTotal) {
+    return uuidToProposals[id].yesTotal;
   }
 
   function tweetThisID(bytes32 id) external view returns (bool yesWon) {
@@ -176,13 +194,13 @@ contract TweEthVoter is Ownable { // CapWords
         } else if(uuidToProposals[ids[i]].yesWon) {
           tokenSum = tokenSum + // TODO: Move calculation of how much I can claim into a getter, by ID
                     uuidToProposals[ids[i]].yesVotes[msg.sender] +
-                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].yesVotes[msg.sender]).div(1000);
+                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].yesVotes[msg.sender]).div(bonusMultipler);
 
           uuidToProposals[ids[i]].yesVotes[msg.sender] = 0;
         } else {
           tokenSum = tokenSum +
                     uuidToProposals[ids[i]].noVotes[msg.sender] +
-                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].noVotes[msg.sender]).div(1000);
+                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].noVotes[msg.sender]).div(bonusMultipler);
           uuidToProposals[ids[i]].noVotes[msg.sender] = 0;
         }
       }
