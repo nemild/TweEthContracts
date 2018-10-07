@@ -92,7 +92,7 @@ contract TweEthVoter is Ownable { // CapWords
       ){
       tokenAddress.transferFrom(msg.sender, this, amount);
 
-      if(voteYes){
+      if (voteYes) {
         uuidToProposals[id].yesVotes[msg.sender] = uuidToProposals[id].yesVotes[msg.sender] + amount;
         uuidToProposals[id].yesTotal = uuidToProposals[id].yesTotal + amount;
       } else {

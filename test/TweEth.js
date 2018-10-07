@@ -19,6 +19,19 @@ async function increaseTime (addSeconds) {
   });
 }
 
+contract('ERC20MintableAndApprove', async (accounts) => {
+  it('should mint and approve', async () => {
+    erc20Mintable = await ERC20MintableAndApprove.new({from: accounts[0]});
+
+    await erc20Mintable.mintAndApprove(accounts[1], 10, {from: accounts[0]});
+    const balance = await erc20Mintable.balanceOf.call(accounts[1]);
+    const allowance = await erc20Mintable.allowance.call(accounts[1], accounts[0]);
+
+    assert.equal(balance.toNumber(), 10, 'balance is not correct');
+    assert.equal(allowance.toNumber(), 10, 'allowance is not correct');
+  });
+});
+
 contract('TweEthVoter', async (accounts) => {
   let erc20Mintable;
   let tweEthVoter;
@@ -33,11 +46,11 @@ contract('TweEthVoter', async (accounts) => {
   });
 
 
-  it('should allow the creation of a proposal', async () => {
+  it('should allow the creation of a proposal with no tokens', async () => {
     //await erc20Mintable.mint(accounts[0], 10, {from: accounts[0]});
 
-    const proposeResult = await tweEthVoter.propose.call(123, {from: accounts[1]});
-    await tweEthVoter.propose(123, {from: accounts[1]});
+    const proposeResult = await tweEthVoter.propose.call(123, 0, {from: accounts[1]});
+    await tweEthVoter.propose(123, 0, {from: accounts[1]});
     assert.equal(proposeResult, true, 'Proposal was not successful');
 
     // const result = await erc20Mintable.totalSupply.call();
@@ -63,21 +76,23 @@ contract('TweEthVoter', async (accounts) => {
   //
   // });
 
-  // it('should allow the creation of a proposal with token', async () => {
-  //   await erc20Mintable.mint(accounts[1], 10, {from: accounts[0]});
-  //   await erc20Mintable.approve(tweEthVoter.address, 10, {from: accounts[1]})
-  //
-  //   const proposeResult = await tweEthVoter.propose.call(1234, {from: accounts[1]});
-  //   await tweEthVoter.propose(123, {from: accounts[1]});
-  //   assert.equal(proposeResult, true, 'Proposal was not successful');
-  //
-  //   // const result = await erc20Mintable.totalSupply.call();
-  //   // console.log(result.toNumber());
-  //
-  //   // let instance = await TweEthVoter.deployed(erc20Mintable.address, 5, 0);
-  //
-  //   // assert.equal(balance.valueOf(), 10000);
-  // });
+  it('should allow the creation of a proposal with tokens', async () => {
+    await erc20Mintable.mintAndApprove(accounts[1], 10, {from: accounts[0]});
+    const balance = await erc20Mintable.balanceOf.call(accounts[1]);
+    console.log(balance.toNumber());
+    // await erc20Mintable.approve(tweEthVoter.address, 10, {from: accounts[1]})
+  
+    const proposeResult = await tweEthVoter.propose.call(1234, 10, {from: accounts[1]});
+    await tweEthVoter.propose(1234, 10, {from: accounts[1]});
+    assert.equal(proposeResult, true, 'Proposal was not successful');
+  
+    // const result = await erc20Mintable.totalSupply.call();
+    // console.log(result.toNumber());
+  
+    // let instance = await TweEthVoter.deployed(erc20Mintable.address, 5, 0);
+  
+    // assert.equal(balance.valueOf(), 10000);
+  });
 
   it('should NOT allow the creation of an existing proposal', async () => {
     await erc20Mintable.mint(accounts[1], 10, {from: accounts[0]});
