@@ -1,4 +1,4 @@
-const ERC20Mintable = artifacts.require('ERC20MintableAndApprove');
+const ERC20MintableAndApprove = artifacts.require('ERC20MintableAndApprove');
 const TweEthVoter = artifacts.require('TweEthVoter');
 
 module.exports = function(deployer, network, accounts) {
