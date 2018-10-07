@@ -37,6 +37,7 @@ contract TweEthVoter { // CapWords
 
   // Events
   event ProposalCreated(bytes32 id, address proposer);
+  event ProposalFailed(bytes32 id, address proposer);
   event VoteLogged(bytes32 id, address voter, uint256 amount, bool yes);
   event ProposalClosed(bytes32 id, bool quorumPassed, bool yesWon, uint256 bonus);
   event Claim(address withdrawerAddress, uint256 tokenSum);
@@ -52,6 +53,8 @@ contract TweEthVoter { // CapWords
     quorumTokensPercentage = _quorumTokensPercentage;
     proposerAmount = _proposerAmount;
   }
+
+//TODO - propose puts tokens into a yes vote -
 
   function propose(bytes32 id) external returns (bool success) {
     if(uuidToProposals[id].startTime == 0) { // test if ID does not exist
@@ -74,7 +77,7 @@ contract TweEthVoter { // CapWords
 
       return true;
     }
-
+    emit ProposalFailed(id, msg.sender);
     return false;
   }
 
@@ -102,11 +105,21 @@ contract TweEthVoter { // CapWords
     return false;
   }
 
+  function getYesVoteCnt(bytes32 id) external view returns (uint256 count){
+    return uuidToProposals[id].yesVotes[msg.sender];
+  }
+
+  function getNoVoteCnt(bytes32 id) external view returns (uint256 count) {
+    return uuidToProposals[id].noVotes[msg.sender];
+  }
+
+//TODO - close is only owner and 1/2 of the tokens to be givenout get sent to a a specified addr
+
   function close(bytes32 id) external returns (bool success) {
     if(
         uuidToProposals[id].startTime != 0 &&
         uuidToProposals[id].open &&
-        uuidToProposals[id].startTime + votingLength > now
+        uuidToProposals[id].startTime + votingLength < now
       ){
         // 1. Close
         uuidToProposals[id].open = false;
@@ -131,8 +144,10 @@ contract TweEthVoter { // CapWords
     return false;
   }
 
-  function tweetThisID(bytes32 id) external returns (bool yesWon) {
-    if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) {
+  function tweetThisID(bytes32 id) external view returns (bool yesWon) {
+    uint256 minTokensRequired = quorumTokensPercentage.mul(tokenAddress.totalSupply()).div(100);
+    if((uuidToProposals[id].noTotal + uuidToProposals[id].yesTotal) > minTokensRequired &&
+      uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) {
       return true; //yes votes won
     }
     return false;
