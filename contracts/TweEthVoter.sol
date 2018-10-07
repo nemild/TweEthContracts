@@ -14,7 +14,7 @@ contract TweEthVoter is Ownable { // CapWords
   uint256 private votingLength = 10 minutes;
   uint256 private quorumTokensPercentage;
 
-  uint256 private percentageToTweeter = 25;
+  uint256 private percentageToTweeter = 50;
   uint256 bonusMultipler = 10000000000;
 
   struct Proposal {
@@ -112,6 +112,10 @@ contract TweEthVoter is Ownable { // CapWords
     return uuidToProposals[id].noVotes[msg.sender];
   }
 
+  function getyesWon(bytes32 id) external view returns (bool yesWon){
+    return  uuidToProposals[id].yesWon;
+  }
+
   function close(bytes32 id, address tweeterPayoutAddress) external onlyOwner returns (bool success) {
     emit CloseStart(id, tweeterPayoutAddress);
     if(
@@ -151,6 +155,11 @@ contract TweEthVoter is Ownable { // CapWords
         return true;
       }
     return false;
+  }
+
+
+  function isQuorumPassed(bytes32 id) external view returns (bool isQuorom) {
+    return uuidToProposals[id].quorumPassed;
   }
 
   function isProposalOpen(bytes32 id) external view returns (bool isOpen) {

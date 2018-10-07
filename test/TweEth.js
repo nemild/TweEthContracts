@@ -441,8 +441,11 @@ contract('TweEthVoterNoWins', async (accounts) => {
     await erc20Mintable.mintAndApprove(accounts[2], tweEthVoter.address, 20, {from: accounts[0]});
     await erc20Mintable.mintAndApprove(accounts[3], tweEthVoter.address, 20, {from: accounts[0]});
 
+    const result = await erc20Mintable.totalSupply.call();
+    console.log('TOTAL SUPPLY:' + result.toNumber());
+
     const proposeResult = await tweEthVoter.propose.call(123, 10, {from: accounts[1]});
-    await tweEthVoter.propose(123, 10, {from: accounts[1]});
+    await tweEthVoter.propose(123, 1, {from: accounts[1]});
     assert.equal(proposeResult, true, 'Proposal was not successful');
 
 
@@ -478,6 +481,16 @@ contract('TweEthVoterNoWins', async (accounts) => {
       await tweEthVoter.close(123, accounts[9], {from: accounts[0]});
       assert.equal(closeResult, true, 'should have been able to close');
 
+      const tweetThis = await tweEthVoter.tweetThisID.call(123, {from: accounts[0]});
+      await tweEthVoter.tweetThisID(123, {from: accounts[0]});
+      assert.equal(tweetThis, false, 'NO Vote won, Dont tweet');
+      console.log('tweetThis?: ' + tweetThis);
+
+      const yesWon = await tweEthVoter.getyesWon.call(123, {from: accounts[0]});
+      await tweEthVoter.getyesWon(123, {from: accounts[0]});
+      assert.equal(tweetThis, false, 'NO Vote won, Dont tweet');
+      console.log('yesWon?: ' + yesWon);
+
       const voteTotalNo = await tweEthVoter.getNoTotal.call(123, {from: accounts[3]});
       await tweEthVoter.getNoTotal.call(123, {from: accounts[3]});
       console.log('voteTotalNo:' + voteTotalNo)
@@ -490,7 +503,7 @@ contract('TweEthVoterNoWins', async (accounts) => {
       await tweEthVoter.getBonusAmount(123, {from: accounts[1]});
       console.log('Bonus:' + bonus.toNumber());
 
-      assert.equal(bonus.toNumber(), 2000000000, 'should have been able to close');
+      assert.equal(bonus.toNumber(), 3333333333, 'should have been able to close');
 
     } catch(err) {
       console.log(err);
@@ -567,6 +580,171 @@ contract('TweEthVoterNoWins', async (accounts) => {
       sent = await tweEthVoter.claim.call([123], {from: accounts[3]});
       await tweEthVoter.claim([123], {from: accounts[3]});
       assert.equal(sent, true, 'should not get error when claiming');
+
+      const balancePost1 = await erc20Mintable.balanceOf.call(accounts[1], {from: accounts[1]});
+      await erc20Mintable.balanceOf(accounts[1], {from: accounts[1]});
+
+      const balancePost2 = await erc20Mintable.balanceOf.call(accounts[2], {from: accounts[2]});
+      await erc20Mintable.balanceOf(accounts[2], {from: accounts[2]});
+
+      const balancePost3 = await erc20Mintable.balanceOf.call(accounts[3], {from: accounts[3]});
+      await erc20Mintable.balanceOf(accounts[3], {from: accounts[3]});
+
+      console.log('balancePost1:' + balancePost1 + ' balancePost2:' + balancePost2 +
+                  ' balancePost3:' + balancePost3);
+
+
+    } catch(err) {
+      console.log(err);
+      assert.equal(true, false, 'should not get error paying out claim');
+    }
+  });
+
+});
+
+contract('TweEthVoterNoQuorum', async (accounts) => {
+  let erc20Mintable;
+  let tweEthVoter;
+
+  before(async function() {
+    erc20Mintable = await ERC20MintableAndApprove.new({from: accounts[0]});
+    tweEthVoter = await TweEthVoter.new(
+        erc20Mintable.address,
+        5,
+        {from: accounts[0]}
+      );
+  });
+
+
+  it('should calculate bonus properly ', async () => {
+    await erc20Mintable.mintAndApprove(accounts[1], tweEthVoter.address, 20, {from: accounts[0]});
+    await erc20Mintable.mintAndApprove(accounts[2], tweEthVoter.address, 20, {from: accounts[0]});
+    await erc20Mintable.mintAndApprove(accounts[3], tweEthVoter.address, 20, {from: accounts[0]});
+
+    const result = await erc20Mintable.totalSupply.call();
+    console.log('TOTAL SUPPLY:' + result.toNumber());
+
+    const proposeResult = await tweEthVoter.propose.call(123, 10, {from: accounts[1]});
+    await tweEthVoter.propose(123, 1, {from: accounts[1]});
+    assert.equal(proposeResult, true, 'Proposal was not successful');
+
+
+
+    try {
+      //15 no votes
+      let voteResult = await tweEthVoter.vote.call(123, 5, false, {from: accounts[1]});
+      await tweEthVoter.vote(123, 1, false, {from: accounts[1]});
+      assert.equal(voteResult, true, 'should be able to vote');
+
+      //ffwd so we can close
+      await increaseTime( 24 * 60 * 60);
+
+
+      const closeResult = await tweEthVoter.close.call(123, accounts[9], {from: accounts[0]});
+      await tweEthVoter.close(123, accounts[9], {from: accounts[0]});
+      assert.equal(closeResult, true, 'should have been able to close');
+
+      const tweetThis = await tweEthVoter.tweetThisID.call(123, {from: accounts[0]});
+      await tweEthVoter.tweetThisID(123, {from: accounts[0]});
+      assert.equal(tweetThis, false, 'NO Vote won, Dont tweet');
+      console.log('tweetThis?: ' + tweetThis);
+
+      const yesWon = await tweEthVoter.getyesWon.call(123, {from: accounts[0]});
+      await tweEthVoter.getyesWon(123, {from: accounts[0]});
+      assert.equal(tweetThis, false, 'NO Vote won, Dont tweet');
+      console.log('yesWon?: ' + yesWon);
+
+      const voteTotalNo = await tweEthVoter.getNoTotal.call(123, {from: accounts[3]});
+      await tweEthVoter.getNoTotal.call(123, {from: accounts[3]});
+      console.log('voteTotalNo:' + voteTotalNo)
+
+      const voteTotalYes = await tweEthVoter.getYesTotal.call(123, {from: accounts[3]});
+      await tweEthVoter.getYesTotal.call(123, {from: accounts[3]});
+      console.log('voteTotalYes:' + voteTotalYes)
+
+      const bonus = await tweEthVoter.getBonusAmount.call(123, {from: accounts[1]});
+      await tweEthVoter.getBonusAmount(123, {from: accounts[1]});
+      console.log('Bonus:' + bonus.toNumber());
+
+      const isQuorum = await tweEthVoter.isQuorumPassed.call(123, {from: accounts[1]});
+      await tweEthVoter.isQuorumPassed(123, {from: accounts[1]});
+      console.log('isQuorum:' + isQuorum);
+
+    } catch(err) {
+      console.log(err);
+      assert.equal(true, false, 'should not get error when voting');
+    }
+  });
+
+
+  it('should pay out claim() properly ', async () => {
+    try {
+
+      const balancePre1 = await erc20Mintable.balanceOf.call(accounts[1], {from: accounts[1]});
+      await erc20Mintable.balanceOf(accounts[1], {from: accounts[1]});
+
+      const balancePre2 = await erc20Mintable.balanceOf.call(accounts[2], {from: accounts[2]});
+      await erc20Mintable.balanceOf(accounts[2], {from: accounts[2]});
+
+      const balancePre3 = await erc20Mintable.balanceOf.call(accounts[3], {from: accounts[3]});
+      await erc20Mintable.balanceOf(accounts[3], {from: accounts[3]});
+
+      console.log('balancePre1:' + balancePre1 + ' balancePre2:' + balancePre2 +
+                  ' balancePre3:' + balancePre3);
+
+      const voteYes1 = await tweEthVoter.getYesVoteCnt.call(123, {from: accounts[1]});
+      const voteYes2 = await tweEthVoter.getYesVoteCnt.call(123, {from: accounts[2]});
+      const voteYes3 = await tweEthVoter.getYesVoteCnt.call(123, {from: accounts[3]});
+
+      console.log('voteYes1:' + voteYes1 + ' voteYes2:' + voteYes2 +
+                  ' voteYes3:' + voteYes3);
+
+      const voteNo1 = await tweEthVoter.getNoVoteCnt.call(123, {from: accounts[1]});
+      const voteNo2 = await tweEthVoter.getNoVoteCnt.call(123, {from: accounts[2]});
+      const voteNo3 = await tweEthVoter.getNoVoteCnt.call(123, {from: accounts[3]});
+
+      console.log('voteNo1:' + voteNo1 + ' voteNo2:' + voteNo2 +
+                  ' voteNo3:' + voteNo3);
+
+      const yesTotal = await tweEthVoter.getYesTotal.call(123, {from: accounts[1]});
+      const noTotal = await tweEthVoter.getNoTotal.call(123, {from: accounts[1]});
+      console.log('yesTotal:' + yesTotal + ' noTotal:' + noTotal);
+
+      //balancePre1:0 balancePre2:10 balancePre3:15
+      //voteYes1:15 voteYes2:5 voteYes3:5 - 25
+      //voteNo1:5 voteNo2:5 voteNo3:0 - 10
+
+      let sent = await tweEthVoter.claim.call([123], {from: accounts[1]});
+      await tweEthVoter.claim([123], {from: accounts[1]});
+      assert.equal(sent, true, 'NQ 1 should not get error when claiming');
+
+      const voteYes11 = await tweEthVoter.getYesVoteCnt.call(123, {from: accounts[1]});
+      const voteYes22 = await tweEthVoter.getYesVoteCnt.call(123, {from: accounts[2]});
+      const voteYes33 = await tweEthVoter.getYesVoteCnt.call(123, {from: accounts[3]});
+
+      console.log('POST CLAIM() voteYes1:' + voteYes11 + ' voteYes2:' + voteYes22 +
+                  ' voteYes3:' + voteYes33);
+
+      const balancePre11 = await erc20Mintable.balanceOf.call(accounts[1], {from: accounts[1]});
+      await erc20Mintable.balanceOf(accounts[1], {from: accounts[1]});
+
+      const balancePre22 = await erc20Mintable.balanceOf.call(accounts[2], {from: accounts[2]});
+      await erc20Mintable.balanceOf(accounts[2], {from: accounts[2]});
+
+      const balancePre33 = await erc20Mintable.balanceOf.call(accounts[3], {from: accounts[3]});
+      await erc20Mintable.balanceOf(accounts[3], {from: accounts[3]});
+
+      console.log('POST CLAIM balancePre1:' + balancePre11 + ' balancePre2:' + balancePre22 +
+                  ' balancePre3:' + balancePre33);
+
+
+      sent = await tweEthVoter.claim.call([123], {from: accounts[2]});
+      await tweEthVoter.claim([123], {from: accounts[2]});
+      assert.equal(sent, false, 'NQ 2 should not get error when claiming');
+
+      sent = await tweEthVoter.claim.call([123], {from: accounts[3]});
+      await tweEthVoter.claim([123], {from: accounts[3]});
+      assert.equal(sent, false, 'NQ 3 should not get error when claiming');
 
       const balancePost1 = await erc20Mintable.balanceOf.call(accounts[1], {from: accounts[1]});
       await erc20Mintable.balanceOf(accounts[1], {from: accounts[1]});
