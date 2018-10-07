@@ -16,6 +16,7 @@ contract TweEthVoter { // CapWords
   uint256 private votingLength = 10 minutes;
   uint256 private quorumTokensPercentage;
   uint256 private proposerAmount; // the amount the proposer has staked to submit the tweet
+  uint256 bonusMultipler = 10000000000;
 
   struct Proposal {
     address proposer;
@@ -131,7 +132,7 @@ contract TweEthVoter { // CapWords
         if((uuidToProposals[id].noTotal + uuidToProposals[id].yesTotal) > minTokensRequired) { // quorum passed
           uuidToProposals[id].quorumPassed = true;
           if(uuidToProposals[id].yesTotal > uuidToProposals[id].noTotal) { // yes votes won
-            uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(1000).div(uuidToProposals[id].yesTotal); // TODO fix 1000
+            uuidToProposals[id].bonus = uuidToProposals[id].noTotal.mul(bonusMultipler).div(uuidToProposals[id].yesTotal);
             uuidToProposals[id].yesWon = true;
           } else { //no votes won
             uuidToProposals[id].bonus = uuidToProposals[id].yesTotal.div(uuidToProposals[id].noTotal);
@@ -143,6 +144,22 @@ contract TweEthVoter { // CapWords
         return true;
       }
     return false;
+  }
+
+  function isProposalOpen(bytes32 id) external view returns (bool isOpen) {
+    return uuidToProposals[id].open;
+  }
+
+  function getBonusAmount(bytes32 id) external view returns (uint256 bonusAmount) {
+    return uuidToProposals[id].bonus;
+  }
+
+  function getNoTotal(bytes32 id) external view returns (uint256 noTotal) {
+    return uuidToProposals[id].noTotal;
+  }
+
+  function getYesTotal(bytes32 id) external view returns (uint256 yesTotal) {
+    return uuidToProposals[id].yesTotal;
   }
 
   function tweetThisID(bytes32 id) external view returns (bool yesWon) {
@@ -172,13 +189,13 @@ contract TweEthVoter { // CapWords
         } else if(uuidToProposals[ids[i]].yesWon) {
           tokenSum = tokenSum + // TODO: Move calculation of how much I can claim into a getter, by ID
                     uuidToProposals[ids[i]].yesVotes[msg.sender] +
-                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].yesVotes[msg.sender]).div(1000);
+                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].yesVotes[msg.sender]).div(bonusMultipler);
 
           uuidToProposals[ids[i]].yesVotes[msg.sender] = 0;
         } else {
           tokenSum = tokenSum +
                     uuidToProposals[ids[i]].noVotes[msg.sender] +
-                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].noVotes[msg.sender]).div(1000);
+                    uuidToProposals[ids[i]].bonus.mul(uuidToProposals[ids[i]].noVotes[msg.sender]).div(bonusMultipler);
           uuidToProposals[ids[i]].noVotes[msg.sender] = 0;
         }
       }
